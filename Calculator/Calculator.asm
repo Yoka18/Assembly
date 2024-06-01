@@ -1,6 +1,7 @@
 section .data
     msg db "Result: ", 0
     len equ $ - msg
+    newline db 10, 0
 
 section .bss
     num1 resb 4
@@ -11,39 +12,55 @@ section .text
     global _start
 
 _start:
-    ; İlk sayıyı okur
-    mov eax, 3
-    mov ebx, 0
-    mov ecx, num1
-    mov edx, 4
-    int 0x80
+    ; İlk sayıyı oku
+    mov eax, 0          ; sys_read (0)
+    mov edi, 0          ; stdin (0)
+    lea rsi, [num1]     ; buffer
+    mov edx, 4          ; buffer length
+    syscall             ; call kernel
 
-    ; İkinci sayıyı okur
-    mov eax, 3
-    mov ebx, 0
-    mov ecx, num2
-    mov edx, 4
-    int 0x80
+    ; İkinci sayıyı oku
+    mov eax, 0          ; sys_read (0)
+    mov edi, 0          ; stdin (0)
+    lea rsi, [num2]     ; buffer
+    mov edx, 4          ; buffer length
+    syscall             ; call kernel
 
-    ; İki sayıyı toplar
-    mov eax, [num1]
-    add eax, [num2]
-    mov [result], eax
+    ; Karakterleri sayılara dönüştür
+    movzx eax, byte [num1]
+    sub eax, '0'
+    movzx ebx, byte [num2]
+    sub ebx, '0'
 
-    ; Ekrana yazdır
-    mov eax, 4
-    mov ebx, 1
-    mov ecx, msg
-    mov edx, len
-    int 0x80
+    ; İki sayıyı topla
+    add eax, ebx
 
-    mov eax, 4
-    mov ebx, 1
-    mov ecx, result
-    mov edx, 4
-    int 0x80
+    ; Sayıyı tekrar karaktere çevir
+    add eax, '0'
+    mov [result], al
+
+    ; Sonucu ekrana yazdır (mesaj)
+    mov eax, 1          ; sys_write (1)
+    mov edi, 1          ; stdout (1)
+    lea rsi, [msg]      ; message
+    mov edx, len        ; message length
+    syscall             ; call kernel
+
+    ; Sonucu ekrana yazdır (değer)
+    mov eax, 1          ; sys_write (1)
+    mov edi, 1          ; stdout (1)
+    lea rsi, [result]   ; result
+    mov edx, 1          ; result length
+    syscall             ; call kernel
+
+    ; Yeni satır yazdır
+    mov eax, 1          ; sys_write (1)
+    mov edi, 1          ; stdout (1)
+    lea rsi, [newline]  ; newline
+    mov edx, 1          ; newline length
+    syscall             ; call kernel
 
     ; Programı sonlandır
-    mov eax, 1
-    xor ebx, ebx
-    int 0x80
+    mov eax, 60         ; sys_exit (60)
+    xor edi, edi        ; return 0
+    syscall             ; call kernel
